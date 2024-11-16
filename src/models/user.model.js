@@ -30,11 +30,9 @@ const userSchema = new Schema({
     },
     coverImage: {
         type: String,
-        required: true,
     },
     refreshToken: {
         type: String,
-        required: true,
     },
     watchHistory: [
         {
@@ -52,7 +50,7 @@ userSchema.pre("save", async function (next) {
 })
 
 userSchema.methods.generateAccessToken = function () {
-    jwt.sign({
+    return jwt.sign({
         _id: this._id,
         username: this.username,
         email: this.email,
@@ -60,9 +58,12 @@ userSchema.methods.generateAccessToken = function () {
     }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: process.env.ACCESS_TOKEN_SECRET_EXPIRY })
 }
 
-userSchema.methods.generateRefreshToken = function () {
-    jwt.sign({
+userSchema.methods.generateRefreshToken =  function () {
+    return jwt.sign({
         _id: this._id,
     }, process.env.REFRESH_TOKEN_SECRET, { expiresIn: process.env.REFRESH_TOKEN_SECRET_EXPIRY })
+}
+userSchema.methods.comparePassword = async function (password) {
+    return await bcrypt.compare(password, this.password)
 }
 export const User = mongoose.model("User", userSchema) 

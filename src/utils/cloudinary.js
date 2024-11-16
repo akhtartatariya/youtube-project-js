@@ -17,9 +17,10 @@ export async function uploadToCloudinary(localFilePath) {
                 { resource_type: "auto", }
             )
             .catch((error) => {
-                console.log(error);
+                console.log(" error in uploading to cloudinary",error);
             });
-        if (uploadResult) fs.unlinkSync(localFilePath)
+        console.log("uploaded file is : ", uploadResult.url)
+        if (uploadResult?.url) fs.unlinkSync(localFilePath)
         return uploadResult
     } catch (error) {
         console.log("error in connecting to cloudinary", error)
