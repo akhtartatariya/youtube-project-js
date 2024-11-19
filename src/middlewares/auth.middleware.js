@@ -1,9 +1,9 @@
-import { User } from "../models/user.model";
-import ApiError from "../utils/ApiError";
-import asyncHandler from "../utils/asyncHandler";
+import { User } from "../models/user.model.js";
+import ApiError from "../utils/ApiError.js";
+import asyncHandler from "../utils/asyncHandler.js";
 import jwt from "jsonwebtoken"
 export const verifyUser = asyncHandler(async (req, _, next) => {
-    const accessToken = req.cookies.accessToken || req.headers['authorization']?.split(' ')[1]
+    const accessToken = req.cookies?.accessToken || req.headers['authorization']?.split(' ')[1]
 
     if (!accessToken) {
         throw new ApiError(401, "Unauthorized User");
@@ -14,7 +14,7 @@ export const verifyUser = asyncHandler(async (req, _, next) => {
     if (!decodedToken) {
         throw new ApiError(401, "unauthorized access token");
     }
-    const user = await User.findById(decodedToken._id)
+    const user = await User.findById(decodedToken._id).select("-password -refreshToken")
 
     if (!user) {
         throw new ApiError(404, "User not found");
