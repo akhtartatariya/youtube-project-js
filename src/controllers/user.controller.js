@@ -273,7 +273,7 @@ const updateCoverImage = asyncHandler(async (req, res) => {
     }
     const newUser = await User.findByIdAndUpdate(req.user?._id, {
         $set: {
-            coverImage:coverImage.url
+            coverImage: coverImage.url
         }
     }, {
         new: true
@@ -281,7 +281,7 @@ const updateCoverImage = asyncHandler(async (req, res) => {
     if (!newUser) {
         throw new ApiError(404, "User not found")
     }
-    console.log(" old img",user.coverImage)
+    console.log(" old img", user.coverImage)
     if (user.coverImage !== "" || user.coverImage !== undefined) {
         const pattern = /\/v\d+\/([^\/]+)\./;
         const match = user.coverImage.match(pattern);
@@ -295,4 +295,69 @@ const updateCoverImage = asyncHandler(async (req, res) => {
     }
     res.status(200).json(new ApiResponse(200, "Cover image updated successfully", newUser))
 })
-export { registerUser, loginUser, logoutUser, refreshAccessToken, getCurrentUser, changePassword, updateUserDetails, updateAvatar, updateCoverImage }
+
+const getUserProfile = asyncHandler(async (req, res) => {
+    const { username } = req.params
+    if (!username?.trim()) {
+        throw new ApiError(400, "channel is required")
+    }
+    const channel = await User.aggregate([
+        {
+            $match: {
+                username
+            }
+        },
+        {
+            $lookup: {
+                from: "subscriptions",
+                localField: "_id",
+                foreignField: "channel",
+                as: "subscriber"
+            }
+        },
+        {
+            $lookup: {
+                from: "subscriptions",
+                localField: "_id",
+                foreignField: "subscriber",
+                as: "subscribedTo"
+            }
+        },
+        {
+            $addFields: {
+                subscriberCount: {
+                    $size: "$subscriber"
+                },
+                subscribedToCount: {
+                    $size: "$subscribedTo"
+                },
+                isSubscribed: {
+                    $cond: {
+                        if: { $in: [req.user._id, "$subscriber.subscriber"] },
+                        then: true,
+                        else: false
+                    }
+                }
+            }
+        },
+        {
+            $project: {
+                fullName: 1,
+                username: 1,
+                email: 1,
+                avatar: 1,
+                coverImage: 1,
+                subscriberCount: 1,
+                subscribedToCount: 1,
+                isSubscribed: 1,
+            }
+        }
+    ])
+
+    if (!channel?.length) {
+        throw new ApiError(404, "channel not found")
+    }
+    res.status(200)
+        .json(new ApiResponse(200, "channel found successfully", channel[0]))
+})
+export { registerUser, loginUser, logoutUser, refreshAccessToken, getCurrentUser, changePassword, updateUserDetails, updateAvatar, updateCoverImage ,getUserProfile}
