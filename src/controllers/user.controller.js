@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { User } from "../models/user.model.js";
 import ApiError from "../utils/ApiError.js";
 import ApiResponse from "../utils/ApiResponse.js";
@@ -124,8 +125,8 @@ const loginUser = asyncHandler(async (req, res) => {
 
 const logoutUser = asyncHandler(async (req, res) => {
     const user = await User.findByIdAndUpdate(req.user?._id, {
-        $set: {
-            refreshToken: undefined
+        $unset: {
+            refreshToken: 1
         }
     }, {
         new: true
@@ -360,4 +361,53 @@ const getUserProfile = asyncHandler(async (req, res) => {
     res.status(200)
         .json(new ApiResponse(200, "channel found successfully", channel[0]))
 })
-export { registerUser, loginUser, logoutUser, refreshAccessToken, getCurrentUser, changePassword, updateUserDetails, updateAvatar, updateCoverImage ,getUserProfile}
+
+const getWatchHistory = asyncHandler(async (req, res) => {
+    const watchHistory = await User.aggregate([
+        {
+            $match: {
+                _id: new mongoose.Types.ObjectId(req.user?._id)
+            }
+        },
+        {
+            $lookup: {
+                from: "videos",
+                localField: "watchHistory",
+                foreignField: "_id",
+                as: "watchHistory",
+                pipeline: [
+                    {
+                        $lookup: {
+                            from: "users",
+                            localField: "owner",
+                            foreignField: "_id",
+                            as: "owner",
+                            pipeline: [
+                                {
+                                    $project: {
+                                        fullName: 1,
+                                        username: 1,
+                                        avatar: 1
+                                    }
+                                }
+                            ]
+                        },
+
+                    },
+                    {
+                        $addFields: {
+                            owner: {
+                                $first: "$owner"
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+    ])
+    if (!watchHistory?.length) {
+        throw new ApiError(404, "watch history not found")
+    }
+    res.status(200).json(new ApiResponse(200, "watch history found successfully", watchHistory[0].watchHistory))
+})
+export { registerUser, loginUser, logoutUser, refreshAccessToken, getCurrentUser, changePassword, updateUserDetails, updateAvatar, updateCoverImage, getUserProfile, getWatchHistory }
