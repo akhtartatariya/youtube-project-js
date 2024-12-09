@@ -253,7 +253,7 @@ const updateAvatar = asyncHandler(async (req, res) => {
             throw new ApiError(500, "unable to match avatar url")
         }
         const deleteOldAvatar = await deleteToCloudinary(match[1])
-        if (!deleteOldAvatar) {
+        if (!deleteOldAvatar === "ok") {
             throw new ApiError(504, "unable to delete old avatar")
         }
     }
@@ -290,7 +290,7 @@ const updateCoverImage = asyncHandler(async (req, res) => {
             throw new ApiError(500, "unable to match cover image url")
         }
         const deleteOldCoverImage = await deleteToCloudinary(match[1])
-        if (!deleteOldCoverImage) {
+        if (!deleteOldCoverImage === "ok") {
             throw new ApiError(504, "unable to delete old cover image")
         }
     }

@@ -2,7 +2,7 @@ import mongoose, { isValidObjectId } from "mongoose"
 import { Like } from "../models/like.model.js"
 import ApiError from "../utils/ApiError.js"
 import ApiResponse from "../utils/ApiResponse.js"
-import { asyncHandler } from "../utils/asyncHandler.js"
+import asyncHandler from "../utils/asyncHandler.js"
 
 const toggleVideoLike = asyncHandler(async (req, res) => {
     const { videoId } = req.params
@@ -84,20 +84,64 @@ const toggleTweetLike = asyncHandler(async (req, res) => {
         if (!newLike) {
             throw new ApiError(500, "Failed to create like")
         }
-        res.status(201).json(new ApiResponse(201, "Like created", { status: true, newLike }))
+        res.status(201).json(new ApiResponse(201, "Like created", newLike))
     }
 }
 )
 
 const getLikedVideos = asyncHandler(async (req, res) => {
     //TODO: get all liked videos
-
-    const videos = await Like.findOne({ video: req.user._id }).populate("video")
+    const videos = await Like.aggregate([
+        {
+            $match: {
+                likedBy: new mongoose.Types.ObjectId(req.user._id)
+            },
+            $match: {
+                video: {
+                    $ne: null
+                }
+            }
+        },
+        {
+            $lookup: {
+                from: "videos",
+                localField: "video",
+                foreignField: "_id",
+                as: "video",
+                pipeline:[
+                    {
+                        $lookup: {
+                            from: "users",
+                            localField: "owner",
+                            foreignField: "_id",
+                            as: "owner",
+                            pipeline: [
+                                {
+                                    $project: {
+                                        _id: 1,
+                                        fullName: 1,
+                                        username: 1
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        $addFields: {
+                            owner: {
+                                $arrayElemAt: [ "$owner", 0 ]
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+        
+    ])
     if (!videos?.length) {
         throw new ApiError(404, "No videos found")
     }
-
-    res.status(200).json(new ApiResponse(200, "Videos found", videos))
+    res.status(200).json(new ApiResponse(200, "Videos found", videos[0]))
 })
 
 export {

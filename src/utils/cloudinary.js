@@ -12,12 +12,12 @@ export async function uploadToCloudinary(localFilePath) {
         const uploadResult = await cloudinary.uploader
             .upload(
                 localFilePath,
-                { resource_type: "auto", }
+                { resource_type: "auto" }
             )
             .catch((error) => {
                 console.log(" error in uploading to cloudinary", error);
             });
-        // console.log("uploaded file is : ", uploadResult.url)
+        console.log("uploaded file is : ", uploadResult.url)
         if (uploadResult?.url) fs.unlinkSync(localFilePath)
 
         return uploadResult
@@ -28,13 +28,22 @@ export async function uploadToCloudinary(localFilePath) {
     }
 
 }
+// delete image from cloudinary
 export async function deleteToCloudinary(path) {
     try {
-        console.log(" path is : ", path)
-        const uploadResult = await cloudinary.uploader.destroy(path)
-        console.log(" deleted file is : ",uploadResult)
-        if (!uploadResult.result == "ok") return null;
-        return true
+        const uploadResult = await cloudinary.uploader.destroy(path, { resource_type: "image" })
+        console.log(" deleted file is : ", uploadResult.result)
+        return uploadResult.result
+    } catch (error) {
+        console.log("error in connecting to cloudinary", error)
+    }
+}
+// delete video from cloudinary
+export async function deleteVideoFromCloudinary(path) {
+    try {
+        const uploadResult = await cloudinary.uploader.destroy(path, { resource_type: "video" })
+        console.log(" deleted file is : ", uploadResult.result)
+        return uploadResult.result
     } catch (error) {
         console.log("error in connecting to cloudinary", error)
     }
